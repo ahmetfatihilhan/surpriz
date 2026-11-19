@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Kalp</title>
+<style>
+  html, body {
+    margin: 0;
+    height: 100%;
+    background: #000;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  canvas {
+    display: block;
+    width: 100vw;
+    height: 100vh;
+  }
+</style>
+</head>
+<body>
+<canvas id="kalpCanvas"></canvas>
+
+<script>
+const canvas = document.getElementById('kalpCanvas');
+const ctx = canvas.getContext('2d');
+
+let W = 0, H = 0, scale = 1;
+let i = 0;
+const TOTAL = 320;
+let lastTime = 0;
+
+function resize() {
+  const dpr = Math.min(window.devicePixelRatio || 1, 2);
+  W = window.innerWidth;
+  H = window.innerHeight;
+  canvas.width = W * dpr;
+  canvas.height = H * dpr;
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  scale = Math.min(W, H) / 620;
+  resetAndDraw();
+}
+
+function drawStep(stepIndex) {
+  const a = (2 * Math.PI * stepIndex) / TOTAL;
+  const xo = 16 * Math.pow(Math.sin(a), 3) * 16;
+  const yo = (
+    13 * Math.cos(a) -
+    5 * Math.cos(2 * a) -
+    2 * Math.cos(3 * a) -
+    Math.cos(4 * a)
+  ) * 16;
+
+  const L = 0.15 + Math.random() * 0.35;
+  const xi = xo * (1 - L);
+  const yi = yo * (1 - L);
+
+  const cx = W / 2;
+  const cy = H / 2 - 20 * scale;
+
+  ctx.lineWidth = Math.max(1.5, 2 * scale);
+  ctx.lineCap = 'round';
+
+  for (let j = 0; j < 10; j++) {
+    const f1 = j / 10;
+    const f2 = (j + 1) / 10;
+
+    const r = Math.round(Math.max(0, Math.min(1, 1 - 0.6 * f1)) * 255);
+    const g = Math.round(Math.max(0, Math.min(1, 0.7 * (1 - f1))) * 255);
+    const b = Math.round(Math.max(0, Math.min(1, 0.8 * (1 - f1))) * 255);
+
+    ctx.strokeStyle = `rgb(${r}, ${g}, ${b})`;
+    ctx.beginPath();
+    ctx.moveTo(cx + (xo + (xi - xo) * f1) * scale, cy - (yo + (yi - yo) * f1) * scale);
+    ctx.lineTo(cx + (xo + (xi - xo) * f2) * scale, cy - (yo + (yi - yo) * f2) * scale);
+    ctx.stroke();
+  }
+}
+
+function resetAndDraw() {
+  ctx.fillStyle = '#000';
+  ctx.fillRect(0, 0, W, H);
+  i = 0;
+  lastTime = performance.now();
+}
+
+function animate(now) {
+  if (i < TOTAL) {
+    if (now - lastTime >= 20) {
+      drawStep(i);
+      i++;
+      lastTime = now;
+    }
+  }
+  requestAnimationFrame(animate);
+}
+
+window.addEventListener('resize', resize);
+window.addEventListener('click', resetAndDraw);
+
+resize();
+requestAnimationFrame(animate);
+</script>
+</body>
+</html>
