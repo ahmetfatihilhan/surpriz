@@ -1,0 +1,40 @@
+import math as m
+import random as r
+import time
+import turtle as t
+
+s = t.Screen()
+s.bgcolor("black")
+s.colormode(1)  # 0.0 - 1.0 arası ondalıklı RGB renkleri için gerekli
+s.tracer(0)
+t.hideturtle()
+
+for i in range(320):
+    a = 2 * m.pi * i / 320
+    xo = 16 * (m.sin(a) ** 3) * 16
+    yo = (
+        13 * m.cos(a)
+        - 5 * m.cos(2 * a)
+        - 2 * m.cos(3 * a)
+        - m.cos(4 * a)
+    ) * 16
+    L = r.uniform(0.15, 0.5)
+    xi, yi = xo * (1 - L), yo * (1 - L)
+
+    for j in range(10):
+        f = j / 10
+        red = max(0.0, min(1.0, 1 - 0.6 * f))
+        green = max(0.0, min(1.0, 0.7 * (1 - f)))
+        blue = max(0.0, min(1.0, 0.8 * (1 - f)))
+
+        t.pencolor(red, green, blue)
+        t.width(2)
+        t.penup()
+        t.goto(xo + (xi - xo) * f, yo + (yi - yo) * f)
+        t.pendown()
+        t.goto(xo + (xi - xo) * (f + 0.1), yo + (yi - yo) * (f + 0.1))
+
+    s.update()
+    time.sleep(0.02)
+
+t.mainloop()  # Pencerenin hemen kapanmasını engeller
