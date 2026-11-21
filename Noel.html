@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>ASCII Noel Ağacı</title>
+<style>
+:root{--bg:#060912;--fg:#8d97ab;--red:#ff5c5c;--ln:#4a5266;--cur:#2a1218;color-scheme:dark;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+html,body{height:100%;margin:0;background:#000;color:var(--fg);font-family:ui-monospace,Menlo,Consolas,"DejaVu Sans Mono",monospace;overflow:hidden}
+#stage{position:relative;height:100%;aspect-ratio:9/16;max-width:100%;margin:0 auto;background:var(--bg);overflow:hidden;font-size:calc(var(--w,360px)*.0245)}
+canvas{position:absolute;left:0;top:0;width:100%;height:100%;display:block}
+</style>
+</head>
+<body>
+<div id="stage">
+  <canvas id="c"></canvas>
+</div>
+<script>
+const DUR=20, TAU=Math.PI*2;
+const st=document.getElementById('stage'),cv=document.getElementById('c'),ctx=cv.getContext('2d');
+let W,H,COLS,ROWS,CW,CH;
+function resize(){
+  const r=st.getBoundingClientRect();st.style.setProperty('--w',r.width+'px');
+  const b=cv.getBoundingClientRect(),d=window.devicePixelRatio||1;
+  W=b.width;H=b.height;cv.width=W*d;cv.height=H*d;ctx.setTransform(d,0,0,d,0,0);
+  COLS=118;CW=W/COLS;CH=CW*1.78;ROWS=Math.floor(H/CH);
+}
+addEventListener('resize',resize);resize();
+
+/* ---------- sahne verisi (videodaki Parts sınıfı gibi: NEEDLE, TRUNK, BALL, LIGHT) ---------- */
+let seed=7;const rnd=()=>(seed=(seed*16807)%2147483647)/2147483647;
+const Y0=0,Y1=5.2;
+const env=y=>{const f=Math.min(1,Math.max(0,(y-Y0)/(Y1-Y0)));return 2.15*(0.03+0.84*Math.pow(1-f,1.08))/0.87};
+const P=[];
+function add(x,y,z,nx,ny,nz,c,ch,o){P.push(Object.assign({x,y,z,nx,ny,nz,c,ch,t0:0,tw:0,kind:'n'},o))}
+const NCH='%#o+*:;';
+// 1) iğne yaprakları: yukarıdan aşağıya büyür, tepede kar kapağı
+for(let i=0;i<9500;i++){
+  const y=Math.pow(rnd(),0.85)*Y1*0.99,a=rnd()*TAU,r=env(y)*(0.68+0.32*Math.sqrt(rnd()))*(0.92+0.08*Math.sin(y*15));
+  let nx=Math.cos(a),nz=Math.sin(a),ny=0.45,n=Math.hypot(nx,ny,nz);
+  const snow=y>Y1*0.86&&rnd()<0.85,g=0.55+rnd()*0.45;
+  add(r*Math.cos(a),y,r*Math.sin(a),nx/n,ny/n,nz/n,snow?[236,241,252]:[30*g,118*g+30,52*g],NCH[(rnd()*7)|0],{t0:1.0+(1-y/Y1)*6.0});
+}
+// 2) gövde: t=0'da parlak bir blok olarak görünür
+for(let i=0;i<650;i++){
+  const a=rnd()*TAU,h=-0.5+rnd()*0.8;
+  add(0.42*Math.cos(a),h,0.42*Math.sin(a),Math.cos(a),0,Math.sin(a),[112,68,38],'#',{t0:0,kind:'k'});
+}
+// 3) altın girlant (spiral)
+for(let i=0;i<950;i++){
+  const y=0.4+(i/950)*(Y1-0.8),a=y*5.4,r=env(y)+0.07;
+  add(r*Math.cos(a),y,r*Math.sin(a),Math.cos(a),0.3,Math.sin(a),[255,201,72],'=',{t0:7.2+(1-y/Y1)*2.2,tw:1});
+}
+// 4) toplar
+const BC=[[222,48,44],[242,192,62],[62,112,222]];
+for(let k=0;k<58;k++){
+  const y=0.5+rnd()*(Y1-1.2),a=rnd()*TAU,r=env(y)+0.05,c=BC[rnd()<.55?0:(rnd()<.6?1:2)],cx=r*Math.cos(a),cz=r*Math.sin(a),t0=6+rnd()*4;
+  for(let j=0;j<22;j++){const u=rnd()*TAU,v=Math.acos(2*rnd()-1),sx=Math.sin(v)*Math.cos(u),sy=Math.cos(v),sz=Math.sin(v)*Math.sin(u);
+    add(cx+sx*.17,y+sy*.17,cz+sz*.17,sx,sy,sz,c,'@',{t0});}
+}
+// 5) ışıklar (sayaç 0 → 170)
+const LIGHTS=170;
+for(let k=0;k<LIGHTS;k++){
+  const y=0.4+rnd()*(Y1-0.7),a=rnd()*TAU,r=env(y)+0.1;
+  add(r*Math.cos(a),y,r*Math.sin(a),Math.cos(a),0.2,Math.sin(a),[255,232,150],'o',{t0:7+rnd()*3.2,tw:1+rnd()*5,kind:'l'});
+}
+// 6) yıldız + ışınlar
+for(let i=0;i<170;i++){const a=rnd()*TAU,q=.3*rnd();add(q*Math.cos(a),Y1+.18+q*Math.sin(a)*1.1,.05*(rnd()-.5),0,1,0,[255,214,82],'#',{t0:10.4,tw:2});}
+for(let i=0;i<10;i++)for(let j=0;j<24;j++){const a=i/10*TAU,l=.38+j*.05;add(l*Math.cos(a),Y1+.18+l*Math.sin(a),0,0,1,0,[255,222,124],i%2?'-':'|',{t0:10.6,tw:3});}
+// 7) hediyeler (sırayla belirir)
+const G=[[1.1,.5,.85,[205,40,40],11.8],[-1.3,.9,.7,[44,92,205],12.8],[.3,-1.5,.9,[228,182,52],13.8],[1.6,-.8,.6,[205,40,40],14.8],[-.5,1.7,.6,[228,182,52],15.6]];
+for(const [gx,gz,s,c,t0] of G)for(let i=0;i<280;i++){
+  const f=(rnd()*3)|0,u=(rnd()-.5)*s,w=(rnd()-.5)*s;let x=gx,y=-.5,z=gz,nx=0,ny=0,nz=0;
+  if(f==0){x+=u;y=-.5+s*.8;z+=w;ny=1}else if(f==1){x+=s/2;y+=rnd()*s*.8;z+=w;nx=1}else{x+=u;y+=rnd()*s*.8;z+=s/2;nz=1}
+  const rib=Math.abs(u)<.06||Math.abs(w)<.06;
+  add(x,y,z,nx,ny,nz,rib?[246,236,202]:c,rib?'+':'%',{t0});
+}
+// 8) zemin
+for(let i=0;i<3600;i++){const a=rnd()*TAU,r=Math.sqrt(rnd())*4.8;
+  add(r*Math.cos(a),-.52,r*Math.sin(a)*.9,0,1,0,[170,180,200].map(v=>v*(.4+.6*rnd())),rnd()<.5?'.':'-',{kind:'g'});}
+const FL=[];for(let i=0;i<150;i++)FL.push({x:rnd(),y:rnd(),v:.04+rnd()*.1,s:rnd()});
+const BG=[];for(let i=0;i<70;i++)BG.push([rnd(),rnd()*.62,rnd()*6]);
+
+/* ---------- çizim ---------- */
+const T0=performance.now();
+function frame(now){
+  const t=((now-T0)/1000)%DUR,rot=(18*t)%360,ra=rot*Math.PI/180,ca=Math.cos(ra),sa=Math.sin(ra);
+  const cells=COLS*ROWS,zb=new Float32Array(cells).fill(1e9),cell=new Array(cells);
+  const D=11,cy=2.35,F=Math.min(COLS*.165,ROWS*CH/CW*.86/5.8);
+  let letters=0,lights=0;
+  for(const p of P){
+    if(t<p.t0)continue;
+    const fade=Math.min(1,(t-p.t0)/.7+.15);
+    const x=p.x*ca-p.z*sa,z=p.x*sa+p.z*ca,zz=z+D,k=F*D/zz;
+    const sx=Math.round(COLS/2+x*k),sy=Math.round(ROWS*.50-(p.y-cy)*k*CW/CH);
+    if(sx<0||sx>=COLS||sy<0||sy>=ROWS)continue;
+    const i=sy*COLS+sx;if(zz>=zb[i])continue;
+    const nx=p.nx*ca-p.nz*sa,nz=p.nx*sa+p.nz*ca;
+    let m=(Math.max(0,nx*.4+p.ny*.7-nz*.6)/.95)*.6+.45;
+    if(p.tw)m*=.55+.45*Math.sin(t*(2+p.tw)+p.x*9+p.y*7);
+    if(p.kind==='g')m=1;
+    m*=fade;zb[i]=zz;cell[i]=[p.ch,p.c[0]*m,p.c[1]*m,p.c[2]*m,p.tw>0&&m>.85*fade];
+  }
+  ctx.fillStyle='#060912';ctx.fillRect(0,0,W,H);
+  ctx.font=`bold ${CH*.92}px ui-monospace,Menlo,Consolas,monospace`;ctx.textBaseline='top';
+  for(const [bx,by,ph] of BG){const sx=(bx*COLS)|0,sy=(by*ROWS)|0;if(!cell[sy*COLS+sx]){ctx.fillStyle=`rgba(205,215,255,${.25+.35*Math.sin(t*2+ph)})`;ctx.fillText('.',sx*CW,sy*CH)}}
+  for(let i=0;i<cells;i++){
+    const c=cell[i];if(!c)continue;letters++;
+    ctx.fillStyle=`rgb(${Math.min(255,c[1])|0},${Math.min(255,c[2])|0},${Math.min(255,c[3])|0})`;
+    if(c[4]){ctx.shadowColor='#ffcf6a';ctx.shadowBlur=9}
+    ctx.fillText(c[0],(i%COLS)*CW,((i/COLS)|0)*CH);
+    if(c[4])ctx.shadowBlur=0;
+  }
+  for(const p of P)if(p.kind==='l'&&t>=p.t0)lights++;
+  ctx.fillStyle='#e9efff';
+  for(const f of FL){f.y+=f.v*.016;f.x+=Math.sin(t+f.s*20)*.0004;if(f.y>1){f.y=0;f.x=Math.random()}
+    ctx.globalAlpha=.35+f.s*.65;ctx.fillText(f.s>.5?'*':'.',f.x*W,f.y*H*.92)}
+  ctx.globalAlpha=1;
+  requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>
